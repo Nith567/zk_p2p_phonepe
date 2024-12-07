@@ -101,7 +101,6 @@ export const useScaffoldWriteContract = <TContractName extends ContractName>(
       notification.error("You are on the wrong network");
       return;
     }
-
     wagmiContractWrite.writeContract(
       {
         abi: deployedContractData.abi as Abi,
