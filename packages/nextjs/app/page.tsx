@@ -31,7 +31,7 @@ const Home: NextPage = () => {
             </figure>
             <div className="card-body">
               <h2 className="card-title">zkp2p-phonepe</h2>
-              <p>Register and </p>
+              <p>Register and convert crypto-fiat</p>
               <div className="card-actions justify-end">
                 <div className="badge badge-outline">Welcome</div>
               </div>

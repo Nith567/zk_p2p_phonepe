@@ -2,18 +2,13 @@
 pragma solidity ^0.8.19;
 import { AggregatorV3Interface } from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
-import "@anon-aadhaar/contracts/interfaces/IAnonAadhaar.sol";
-import "@anon-aadhaar/contracts/interfaces/IAnonAadhaarVote.sol";
 import { ISP } from "@ethsign/sign-protocol-evm/src/interfaces/ISP.sol";
 import { Attestation } from "@ethsign/sign-protocol-evm/src/models/Attestation.sol";
 import { DataLocation } from "@ethsign/sign-protocol-evm/src/models/DataLocation.sol";
 
 contract offRampBased {
-	mapping(address => bool) kycClaimed;
-	address public anonAadhaarVerifierAddr;
-
 	address private constant priceFeedAddress =
-		0xd30e2101a97dcbAeBCBC04F14C3f624E67A35165;
+		0x4aDC67696bA383F43DD60A9e78F2C97Fbbfc7cb1;
 	error ConfirmationAddressMismatch();
 
 	event EthClaimed(
@@ -46,43 +41,10 @@ contract offRampBased {
 	mapping(address => bool) public isSeller;
 	mapping(bytes32 => uint256) private requestIdToTradeId;
 
-	constructor(address _verifierAddr) {
-		anonAadhaarVerifierAddr = _verifierAddr;
-	}
+	constructor() {}
 
 	function addressToUint256(address _addr) private pure returns (uint256) {
 		return uint256(uint160(_addr));
-	}
-
-	modifier onlyKycVerified() {
-		require(kycClaimed[msg.sender], "KYC not completed, access denied");
-		_;
-	}
-
-	function getKyc(
-		uint nullifierSeed,
-		uint nullifier,
-		uint timestamp,
-		uint signal,
-		uint[4] memory revealArray,
-		uint[8] memory groth16Proof
-	) public {
-		require(
-			addressToUint256(msg.sender) == signal,
-			"[AnonAadhaarVote]: wrong user signal sent."
-		);
-		require(
-			IAnonAadhaar(anonAadhaarVerifierAddr).verifyAnonAadhaarProof(
-				nullifierSeed,
-				nullifier,
-				timestamp,
-				signal,
-				revealArray,
-				groth16Proof
-			) == true,
-			"[AnonAadhaarVote]: proof sent is not valid."
-		);
-		kycClaimed[msg.sender] = true;
 	}
 
 	function sendVerifyByBuyer(
@@ -152,10 +114,7 @@ contract offRampBased {
 		uint256 tradeETH
 	);
 
-	function doubleDeposit(
-		uint256 tradeId,
-		uint256 tradeETH
-	) external onlyKycVerified {
+	function doubleDeposit(uint256 tradeId, uint256 tradeETH) external {
 		trades[tradeId].seller = Merchant(msg.sender, tradeETH);
 		emit DoubleDeposit(tradeId, msg.sender, tradeETH);
 	}
@@ -171,7 +130,7 @@ contract offRampBased {
 		return usdValue;
 	}
 
-	function startRound(uint256 tradeId) external payable onlyKycVerified {
+	function startRound(uint256 tradeId) external payable {
 		uint256 requiredETH = trades[tradeId].EthLock;
 		uint256 doubledETH = requiredETH * 2;
 		// Ensure the seller pays double the required ETH amount later can withdraw other half of it :-)
