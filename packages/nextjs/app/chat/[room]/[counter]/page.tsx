@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { addDoc, collection, onSnapshot, orderBy, query, serverTimestamp, where } from "firebase/firestore";
+import { useAccount } from "wagmi";
 import SellRoomChat from "~~/components/SellRoomChat";
 import { db } from "~~/lib/firebase";
 
@@ -15,6 +16,7 @@ interface PageParams {
 export default function page({ params }: PageParams) {
   const { room } = params;
   console.log("roomid ", room);
+  const { address: connectedAddress } = useAccount();
   const [newMessage, setNewMessage] = useState<string>("");
 
   const messagesRef = collection(db, "messages");
@@ -52,6 +54,12 @@ export default function page({ params }: PageParams) {
   }
 
   return (
-    <SellRoomChat setNewMessage={setNewMessage} newMessage={newMessage} messages={messages} pushMessage={pushMessage} />
+    <SellRoomChat
+      setNewMessage={setNewMessage}
+      connectedAddress={connectedAddress}
+      newMessage={newMessage}
+      messages={messages}
+      pushMessage={pushMessage}
+    />
   );
 }

@@ -6,8 +6,9 @@ import axios from "axios";
 import { type Hex, formatEther, parseAbi, parseEther } from "viem";
 import { type BaseError, useAccount, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
 import { DocumentDuplicateIcon } from "@heroicons/react/24/outline";
+import { useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
 
-const SellRoomChat = ({ roomId, messages, tradeId, pushMessage, newMessage, setNewMessage }: any) => {
+const SellRoomChat = ({ roomId, connectedAddress, messages, tradeId, pushMessage, newMessage, setNewMessage }: any) => {
   const [userRole, setUserRole] = useState<boolean | null>(null); // true = seller, false = buyer
   const [inputValue, setInputValue] = useState("");
   const [inputValue2, setInputValue2] = useState("");
@@ -20,34 +21,25 @@ const SellRoomChat = ({ roomId, messages, tradeId, pushMessage, newMessage, setN
   const { data: hash, writeContract, isPending, error } = useWriteContract();
   const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({ hash });
 
-  async function setRole() {
-    const response = await axios.post("/api/sellerroom", {
-      eoa: address,
-    });
-    const data = await response.data;
-    setUserRole(data.sellerOrBuyer);
-  }
+  const { writeContractAsync: writeYourContractAsync } = useScaffoldWriteContract("offRampBased");
 
   useEffect(() => {
-    setRole();
-  }, []);
+    if (connectedAddress) {
+      (async function setRole() {
+        try {
+          const response = await axios.post("/api/sellerroom", {
+            eoa: connectedAddress,
+          });
 
-  async function handleContract(address: any, abi: any, functionName: string, args: any[]): Promise<void> {
-    try {
-      const result = writeContract({
-        address,
-        abi,
-        functionName,
-        args,
-      });
-    } catch (error) {
-      console.error("Error executing contract function:", error);
+          const data = response.data;
+          setUserRole(data.sellerOrBuyer);
+        } catch (error) {
+          console.error("Error setting role:", error);
+        }
+      })();
     }
-  }
+  }, [connectedAddress]);
 
-  const sendMessage = async (text: string) => {
-    pushMessage(text);
-  };
   let lastMessageDate: any = null;
 
   const formatDate = (timestamp: any) => {
@@ -63,12 +55,11 @@ const SellRoomChat = ({ roomId, messages, tradeId, pushMessage, newMessage, setN
       return date.toLocaleTimeString([], {
         hour: "2-digit",
         minute: "2-digit",
-        hour12: false, // Ensures 24-hour format
+        hour12: false,
       });
     }
     return "";
   };
-  console.log("mef", messages);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -81,210 +72,30 @@ const SellRoomChat = ({ roomId, messages, tradeId, pushMessage, newMessage, setN
     <main className="min-h-screen pt-[10vh] custom-bg bg-sky-300 min-w-screen flex flex-col lg:flex-row items-start">
       {isConnected && (
         <div
-          className={`flex-1 rounded-3xl mx-auto lg:ml-[2vw] lg:mr-[1vw] lg:my-[5vh] bg-white gap-4 p-5 h-[80vh] flex flex-col items-center justify-center`}
+          className={`flex-1 rounded-3xl mx-auto lg:ml-[2vw] lg:mr-[1vw] lg:my-[5vh] bg-blue-300 gap-4 p-5 h-[80vh] flex flex-col items-center justify-center`}
         >
           {userRole === true && (
             <>
-              <input
-                className="lg:w-3/4 w-full rounded-full p-3 px-5 outline-none focus:outline-none fo ring-2 focus:ring-neutral-400 ring-neutral-300"
-                placeholder="enter how many eth value want to sell"
-                value={inputValue}
-                onChange={e => setInputValue(e.target.value)}
-              />
-              <input
-                className="lg:w-3/4 w-full rounded-full p-3 px-5 outline-none focus:outline-none fo ring-2 focus:ring-neutral-400 ring-neutral-300"
-                placeholder="Send each other messages to complete the trade"
-                type="number"
-                step="any"
-                value={inputValue4}
-                onChange={e => setInputValue4(e.target.value)}
-              />
+              userrole true beta {connectedAddress}
               <button
-                disabled={isPending}
-                className="lg:w-3/4 w-full rounded-full bg-violet-950 hover:bg-violet-900 px-5 text-white p-3 outline-none focus:outline-none"
-                onClick={() => {
-                  writeContract({
-                    address: "0x6057525fbEAd7eC2924B46885C570745a60c4126",
-                    abi: parseAbi(["function submitProposalOffRAMP(uint256 tradeId,uint256 tradeETH)"]),
-                    functionName: "submitProposalOffRAMP",
-                    args: [BigInt(14), BigInt((Number(inputValue4) * 1e18).toFixed())],
-                    //@ts-ignore
-                    value: parseEther(inputValue4),
-                  });
-                }}
-              >
-                {isPending ? "Sending..." : "Submit Proposal"}
-              </button>
-              {isConfirming && <div>Waiting for confirmation...</div>}
-              {isConfirmed && (
-                <div>
-                  Transaction confirmed - Send to your Buyer
-                  <button
-                    className="lg:w-3/4 w-full rounded-full bg-violet-950 hover:bg-violet-900 px-5 text-white p-3 outline-none focus:outline-none"
-                    onClick={() =>
-                      sendMessage(`Tnx confirmed successfullySent-> https://sepolia.arbiscan.io/tx/${hash}`)
-                    }
-                  >
-                    Send
-                  </button>
-                </div>
-              )}
-              <button
-                disabled={isPending}
-                className="lg:w-3/4 w-full rounded-full bg-violet-950 hover:bg-violet-900 px-5 text-white p-3 outline-none focus:outline-none"
-                onClick={() => {
-                  const ethAmount = parseFloat(inputValue);
-                  if (!isNaN(ethAmount)) {
-                    handleContract(
-                      "0x6057525fbEAd7eC2924B46885C570745a60c4126",
-                      parseAbi(["function startRound(uint256 tradeId)"]),
-                      "startRound",
-                      [tradeId],
-                    );
-                  } else {
-                    console.error(" something went wrong");
+                className="btn btn-primary"
+                onClick={async () => {
+                  try {
+                    await writeYourContractAsync({
+                      functionName: "doubleDeposit",
+                      args: [tradeId, (inputValue = "23")],
+                    });
+                  } catch (e) {
+                    console.error("Error setting greeting:", e);
                   }
                 }}
               >
-                {isPending ? "Locking..." : "locking your ETH"}
+                Set Greeting
               </button>
-              {isConfirming && <div>Waiting for confirmation...</div>}
-              {isConfirmed && (
-                <div>
-                  Transaction confirmed - Send to your Buyer
-                  <button
-                    className="lg:w-3/4 w-full rounded-full bg-violet-950 hover:bg-violet-900 px-5 text-white p-3 outline-none focus:outline-none"
-                    onClick={() =>
-                      sendMessage(`Tnx confirmed locked ETH successfully Sent-> https://sepolia.arbiscan.io/tx/${hash}`)
-                    }
-                  >
-                    Send
-                  </button>
-                </div>
-              )}
             </>
           )}
 
-          {userRole === false && (
-            <>
-              here i am buyer dude
-              <input
-                className="lg:w-3/4 w-full rounded-full bg-violet-950 hover:bg-violet-900 px-5 text-white p-3 outline-none focus:outline-none"
-                placeholder="Anything want to say to seller via attestation"
-                value={inputValue2}
-                onChange={e => setInputValue2(e.target.value)}
-              />
-              <button
-                disabled={isPending}
-                className="lg:w-3/4 w-full rounded-full bg-violet-950 hover:bg-violet-900 px-5 text-white p-3 outline-none focus:outline-none"
-                onClick={() => {
-                  const ethAmount = parseFloat(inputValue);
-                  if (!isNaN(ethAmount)) {
-                    handleContract(
-                      "0x6057525fbEAd7eC2924B46885C570745a60c4126",
-                      parseAbi(["function confirmOffRamp(address sellerAddress, uint256 tradeId,bytes memory _data)"]),
-                      "confirmOffRamp",
-                      ["0x8a0d290b2ee35efde47810ca8ff057e109e4190b", 13, inputValue2],
-                    );
-                  } else {
-                    console.error("error ");
-                  }
-                }}
-              >
-                {isPending ? "Sending..." : "Accept Proposal"}
-              </button>
-              <div className=" ">
-                {isConfirming && <div>Waiting for confirmation...</div>}
-                {isConfirmed && (
-                  <div>
-                    Transaction confirmed - Send to your Seller
-                    <button
-                      className="lg:w-3/4 w-full rounded-full bg-violet-950 hover:bg-violet-900 px-5 text-white p-3 outline-none focus:outline-none"
-                      onClick={() =>
-                        sendMessage(`Tnx confirmed successfullySent-> https://sepolia.arbiscan.io/tx/${hash}`)
-                      }
-                    >
-                      Send
-                    </button>
-                  </div>
-                )}
-              </div>
-              <div>
-                <button
-                  disabled={isPending}
-                  className="lg:w-3/4 w-full rounded-full bg-violet-950 hover:bg-violet-900 px-5 text-white p-3 outline-none focus:outline-none"
-                  onClick={() => {
-                    const ethAmount = parseFloat(inputValue);
-                    if (!isNaN(ethAmount)) {
-                      handleContract(
-                        "0x6057525fbEAd7eC2924B46885C570745a60c4126",
-                        parseAbi([
-                          "function sendRequest( uint256 tradeId, uint64 subscriptionId, string[] calldata args)",
-                        ]),
-                        "sendRequest",
-                        [tradeId, 166, ["accesstoken", "messageId"]],
-                      );
-                    } else {
-                      console.error("error ");
-                    }
-                  }}
-                >
-                  {isPending ? "Sending to Oracle..." : "confirming Request"}
-                </button>
-                {isConfirming && <div>Waiting for confirmation...</div>}
-                {isConfirmed && (
-                  <div>
-                    Transaction confirmed - Send to your Seller
-                    <button
-                      className="lg:w-3/4 w-full rounded-full bg-violet-950 hover:bg-violet-900 px-5 text-white p-3 outline-none focus:outline-none"
-                      onClick={() =>
-                        sendMessage(
-                          `Tnx confirmed successfully paid to seller, Sent-> https://sepolia.arbiscan.io/tx/${hash}`,
-                        )
-                      }
-                    >
-                      Send
-                    </button>
-                  </div>
-                )}
-              </div>
-              <button
-                disabled={isPending}
-                className="lg:w-3/4 w-full rounded-full bg-violet-950 hover:bg-violet-900 px-5 text-white p-3 outline-none focus:outline-none"
-                onClick={() => {
-                  const ethAmount = parseFloat(inputValue);
-                  if (!isNaN(ethAmount)) {
-                    handleContract(
-                      "0x6057525fbEAd7eC2924B46885C570745a60c4126",
-                      parseAbi(["function claim( uint256 tradeId)"]),
-                      "claim",
-                      [tradeId],
-                    );
-                  } else {
-                    console.error("error you are not authroized to claim");
-                  }
-                }}
-              >
-                {isPending ? "claiming ETH ..." : "claim your ETH"}
-              </button>
-              {isConfirming && <div>Waiting for confirmation...</div>}
-              {isConfirmed && (
-                <div>
-                  Transaction confirmed - Send to your Seller
-                  <button
-                    className="lg:w-3/4 w-full rounded-full bg-violet-950 hover:bg-violet-900 px-5 text-white p-3 outline-none focus:outline-none"
-                    onClick={() =>
-                      sendMessage(
-                        `Tnx confirmed successfully paid to seller, Sent-> https://sepolia.arbiscan.io/tx/${hash}`,
-                      )
-                    }
-                  >
-                    Send
-                  </button>
-                </div>
-              )}
-            </>
-          )}
+          {userRole === false && <>false role beta</>}
         </div>
       )}
       <div
@@ -317,6 +128,7 @@ const SellRoomChat = ({ roomId, messages, tradeId, pushMessage, newMessage, setN
             );
           })}
         </div>
+        <button onClick={() => console.log(connectedAddress)}>helloworld</button>
         <form onSubmit={handleSubmit} className="flex flex-row items-center gap-3 py-5 px-5">
           <input
             type="text"
