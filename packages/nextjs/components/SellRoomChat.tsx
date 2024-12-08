@@ -12,17 +12,17 @@ import { useTransactor } from "~~/hooks/scaffold-eth";
 
 const SellRoomChat = ({ roomId, connectedAddress, messages, tradeId, pushMessage, newMessage, setNewMessage }: any) => {
   const [userRole, setUserRole] = useState<boolean | null>(null); // true = seller, false = buyer
-  const [inputValue, setInputValue] = useState("");
+  const [inputValue, setInputValue] = useState();
   const handleInputChange = (e: any) => setInputValue(e.target.value);
 
-  const [inputValue2, setInputValue2] = useState(""); //for addresss
+  const [inputValue2, setInputValue2] = useState(); //for addresss
   const handleInputChange2 = (e: any) => setInputValue2(e.target.value);
 
   //used for tnxid
-  const [inputValue3, setInputValue3] = useState(""); //for addresss
+  const [inputValue3, setInputValue3] = useState(); //for addresss
   const handleInputChange3 = (e: any) => setInputValue3(e.target.value);
 
-  const [inputValue4, setInputValue4] = useState(""); //for addresss
+  const [inputValue4, setInputValue4] = useState(); //for addresss
   const handleInputChange4 = (e: any) => setInputValue4(e.target.value);
   const router = useRouter();
 
@@ -84,7 +84,7 @@ const SellRoomChat = ({ roomId, connectedAddress, messages, tradeId, pushMessage
         <div
           className={`flex-1 rounded-3xl mx-auto lg:ml-[2vw] lg:mr-[1vw] lg:my-[5vh] bg-blue-300 p-6 h-[80vh] flex flex-col gap-6`}
         >
-          {userRole === true && (
+          {/* {userRole === true && (
             <>
               <div className="flex flex-col gap-4">
                 <div>
@@ -104,11 +104,14 @@ const SellRoomChat = ({ roomId, connectedAddress, messages, tradeId, pushMessage
                         await writeYourContractAsync(
                           {
                             functionName: "doubleDeposit",
-                            args: [tradeId, BigInt(ethers.utils.parseUnits(inputValue, "ether").toString())],
+                            //@ts-ignore
+                            args: [tradeId, BigInt(ethers.utils.parseEther(inputValue))],
                           },
                           {
                             onBlockConfirmation: txnReceipt => {
                               console.log("📦 Transaction blockHash", txnReceipt.blockHash);
+                              pushMessage(newMessage);
+                              setNewMessage("");
                             },
                           },
                         );
@@ -156,7 +159,7 @@ const SellRoomChat = ({ roomId, connectedAddress, messages, tradeId, pushMessage
                       try {
                         await writeYourContractAsync({
                           functionName: "confirmBySeller",
-                          args: [tradeId, inputValue3 as `0x${string}`],
+                          args: [tradeId, inputValue3],
                         });
                       } catch (e) {
                         console.error("Error setting greeting:", e);
@@ -187,7 +190,7 @@ const SellRoomChat = ({ roomId, connectedAddress, messages, tradeId, pushMessage
                       try {
                         await writeYourContractAsync({
                           functionName: "confirmOffRamp",
-                          args: [inputValue2 as AddressType, tradeId, "0x77"],
+                          args: [inputValue2, tradeId, "0x77"],
                         });
                       } catch (e) {
                         console.error("Error setting greeting:", e);
@@ -212,7 +215,7 @@ const SellRoomChat = ({ roomId, connectedAddress, messages, tradeId, pushMessage
                       try {
                         await writeYourContractAsync({
                           functionName: "sendVerifyByBuyer",
-                          args: [tradeId, BigInt(inputValue4)],
+                          args: [tradeId, BigInt(inputValue4 || "0")],
                         });
                       } catch (e) {
                         console.error("Error setting greeting:", e);
@@ -242,7 +245,7 @@ const SellRoomChat = ({ roomId, connectedAddress, messages, tradeId, pushMessage
                 </div>
               </div>
             </>
-          )}
+          )} */}
         </div>
       )}
       <div
