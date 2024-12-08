@@ -35,7 +35,7 @@ contract offRampBased {
 		bool dealDone;
 	}
 	ISP public spInstance = ISP(0x4e4af2a21ebf62850fD99Eb6253E1eFBb56098cD);
-	uint64 public schemaId = 777;
+	uint64 public schemaId = 244;
 	mapping(uint256 => Trade) public trades;
 	mapping(address => bool) public isMerchant;
 	mapping(address => bool) public isSeller;
