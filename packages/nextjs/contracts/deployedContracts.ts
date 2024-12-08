@@ -7,7 +7,7 @@ import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 const deployedContracts = {
   84532: {
     offRampBased: {
-      address: "0x8fE5788A1C7f4eBd6Fae5bacb9b63e3A0d40AB52",
+      address: "0xDe2Bfe57a19673A78223dFb9Ee1d489bB8e99901",
       abi: [
         {
           inputs: [],
@@ -215,11 +215,6 @@ const deployedContracts = {
               internalType: "uint256",
               name: "amountPaid",
               type: "uint256",
-            },
-            {
-              internalType: "bytes32",
-              name: "mockTxnId",
-              type: "bytes32",
             },
           ],
           name: "sendVerifyByBuyer",

@@ -47,100 +47,6 @@ contract offRampBased {
 		return uint256(uint160(_addr));
 	}
 
-	function sendVerifyByBuyer(
-		uint256 tradeId,
-		uint256 amountPaid,
-		bytes32 mockTxnId
-	) public {
-		//proof from the buyer with rupees
-		//here buyer sends payment through phonepe and make zk proof->
-		//require() statement needed
-		uint256 rupeee;
-		require(
-			amountPaid >= getPrice(trades[tradeId].EthLock),
-			"Amount must be more than or equal to INR Amount"
-		);
-		bytes32 expectedTxnId = keccak256(
-			abi.encodePacked("MOCK_PROOF", tradeId, amountPaid)
-		);
-		require(
-			expectedTxnId == mockTxnId,
-			"Invalid mock transaction ID or proof"
-		);
-		trades[tradeId].Paid = true;
-	}
-
-	//enter tnxid by the seller and take your half of amount money -:)and you got your money in your bank...
-	function confirmBySeller(uint256 tradeId, bytes32 txnId) external {
-		//enter private tnxID and check , verify from the buyer rom signals array bit
-		//if yes then
-		bytes32 expectedTxnId = keccak256(abi.encodePacked(txnId, tradeId));
-		uint256 halfEth = trades[tradeId].EthLock / 2;
-		require(
-			txnId == expectedTxnId,
-			"Invalid transaction ID or mismatch with mock data"
-		);
-		require(halfEth > 0, "[Error]: No sufficient ETH to claim");
-		payable(msg.sender).transfer(halfEth);
-		trades[tradeId].dealDone == true;
-	}
-
-	function ClaimByBuyer(uint256 tradeId) external {
-		require(
-			trades[tradeId].dealDone,
-			"seller didnt entered/invalid output"
-		);
-		payable(msg.sender).transfer(trades[tradeId].remaningEth);
-	}
-
-	modifier OnlySeller(uint256 tradeId) {
-		require(
-			trades[tradeId].seller.addr == msg.sender,
-			"you are not the authorized seller to claim"
-		);
-		_;
-	}
-
-	modifier onlyBuyer(uint256 tradeId) {
-		require(
-			trades[tradeId].buyer.addr == msg.sender,
-			"you are not the authorized seller to claim"
-		);
-		_;
-	}
-	event DoubleDeposit(
-		uint256 indexed tradeId,
-		address indexed seller,
-		uint256 tradeETH
-	);
-
-	function doubleDeposit(uint256 tradeId, uint256 tradeETH) external {
-		trades[tradeId].seller = Merchant(msg.sender, tradeETH);
-		emit DoubleDeposit(tradeId, msg.sender, tradeETH);
-	}
-
-	function getPrice(uint256 LockETH) internal view returns (uint256) {
-		AggregatorV3Interface priceFeed = AggregatorV3Interface(
-			priceFeedAddress
-		);
-		(, int256 price, , , ) = priceFeed.latestRoundData();
-		require(price > 0, "Invalid price from oracle");
-		uint256 ethPriceInUsd = uint256(price) * 1e10; // Adjust price for precision
-		uint256 usdValue = (LockETH * ethPriceInUsd) / 1e36; // Convert ETH to USD
-		return usdValue;
-	}
-
-	function startRound(uint256 tradeId) external payable {
-		uint256 requiredETH = trades[tradeId].EthLock;
-		uint256 doubledETH = requiredETH * 2;
-		// Ensure the seller pays double the required ETH amount later can withdraw other half of it :-)
-		require(
-			msg.value == doubledETH,
-			"Incorrect ETH amount sent by seller into contract, must be double the required ETH"
-		);
-		trades[tradeId].extraEth = doubledETH - requiredETH;
-	}
-
 	function confirmOffRamp(
 		address sellerAddress,
 		uint256 tradeId,
@@ -180,5 +86,83 @@ contract offRampBased {
 		} else {
 			revert ConfirmationAddressMismatch();
 		}
+	}
+
+	function sendVerifyByBuyer(uint256 tradeId, uint256 amountPaid) public {
+		//proof from the buyer with rupees
+		//here buyer sends payment through phonepe and make zk proof->
+		//require() statement needed
+		uint256 rupeee;
+		require(
+			amountPaid >= getPrice(trades[tradeId].EthLock),
+			"Amount must be more than or equal to INR Amount"
+		);
+		trades[tradeId].Paid = true;
+	}
+
+	//enter tnxid by the seller and take your half of amount money -:)and you got your money in your bank+remaming eth(x2) in your wallet
+	//the original-x amount went to buyer
+	function confirmBySeller(uint256 tradeId, bytes32 txnId) external {
+		//enter private tnxID and check , verify from the buyer rom signals array bit
+		//if yes then
+		uint256 halfEth = trades[tradeId].EthLock / 2;
+		require(halfEth > 0, "[Error]: No sufficient ETH to claim");
+		payable(msg.sender).transfer(halfEth);
+		trades[tradeId].dealDone == true;
+	}
+
+	function ClaimByBuyer(uint256 tradeId) external {
+		require(
+			trades[tradeId].dealDone,
+			"seller didnt entered/invalid output"
+		);
+		payable(msg.sender).transfer(trades[tradeId].remaningEth);
+	}
+
+	modifier OnlySeller(uint256 tradeId) {
+		require(
+			trades[tradeId].seller.addr == msg.sender,
+			"you are not the authorized seller to claim"
+		);
+		_;
+	}
+	function getPrice(uint256 LockETH) internal view returns (uint256) {
+		AggregatorV3Interface priceFeed = AggregatorV3Interface(
+			priceFeedAddress
+		);
+		(, int256 price, , , ) = priceFeed.latestRoundData();
+		require(price > 0, "Invalid price from oracle");
+		uint256 ethPriceInUsd = uint256(price) * 1e10; // Adjust price for precision
+		uint256 usdValue = (LockETH * ethPriceInUsd) / 1e36; // Convert ETH to USD
+		return usdValue;
+	}
+
+	modifier onlyBuyer(uint256 tradeId) {
+		require(
+			trades[tradeId].buyer.addr == msg.sender,
+			"you are not the authorized seller to claim"
+		);
+		_;
+	}
+	event DoubleDeposit(
+		uint256 indexed tradeId,
+		address indexed seller,
+		uint256 tradeETH
+	);
+
+	function doubleDeposit(uint256 tradeId, uint256 tradeETH) external {
+		trades[tradeId].seller = Merchant(msg.sender, tradeETH);
+		emit DoubleDeposit(tradeId, msg.sender, tradeETH);
+	}
+
+	function startRound(uint256 tradeId) external payable {
+		uint256 requiredETH = trades[tradeId].EthLock;
+		uint256 doubledETH = requiredETH * 2;
+		// Ensure the seller pays double the required ETH amount later can withdraw other half of it :-)
+		require(
+			msg.value == doubledETH,
+			"Incorrect ETH amount sent by seller into contract, must be double the required ETH"
+		);
+		trades[tradeId].extraEth = doubledETH - requiredETH;
 	}
 }

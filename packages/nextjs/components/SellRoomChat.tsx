@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
-import { type Hex, formatEther, parseAbi, parseEther } from "viem";
+import { ethers } from "ethers";
+import { Address as AddressType, type Hex, formatEther, parseAbi, parseEther } from "viem";
 import { type BaseError, useAccount, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
 import { DocumentDuplicateIcon } from "@heroicons/react/24/outline";
 import { useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
@@ -11,9 +12,17 @@ import { useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
 const SellRoomChat = ({ roomId, connectedAddress, messages, tradeId, pushMessage, newMessage, setNewMessage }: any) => {
   const [userRole, setUserRole] = useState<boolean | null>(null); // true = seller, false = buyer
   const [inputValue, setInputValue] = useState("");
-  const [inputValue2, setInputValue2] = useState("");
-  const [inputValue4, setInputValue4] = useState("");
+  const handleInputChange = (e: any) => setInputValue(e.target.value);
 
+  const [inputValue2, setInputValue2] = useState(""); //for addresss
+  const handleInputChange2 = (e: any) => setInputValue(e.target.value);
+
+  //used for tnxid
+  const [inputValue3, setInputValue3] = useState(""); //for addresss
+  const handleInputChange3 = (e: any) => setInputValue(e.target.value);
+
+  const [inputValue4, setInputValue4] = useState(""); //for addresss
+  const handleInputChange4 = (e: any) => setInputValue(e.target.value);
   const router = useRouter();
 
   const { address } = useAccount();
@@ -76,26 +85,148 @@ const SellRoomChat = ({ roomId, connectedAddress, messages, tradeId, pushMessage
         >
           {userRole === true && (
             <>
-              userrole true beta {connectedAddress}
-              <button
-                className="btn btn-primary"
-                onClick={async () => {
-                  try {
-                    await writeYourContractAsync({
-                      functionName: "doubleDeposit",
-                      args: [tradeId, (inputValue = "23")],
-                    });
-                  } catch (e) {
-                    console.error("Error setting greeting:", e);
-                  }
-                }}
-              >
-                Set Greeting
-              </button>
+              {connectedAddress}
+              <div>
+                <input
+                  type="text"
+                  className="text-center"
+                  placeholder="Enter eth how much to exchange"
+                  value={inputValue}
+                  onChange={handleInputChange}
+                />
+                <button
+                  className="btn btn-primary"
+                  onClick={async () => {
+                    try {
+                      await writeYourContractAsync({
+                        functionName: "doubleDeposit",
+                        args: [tradeId, BigInt(ethers.utils.parseUnits(inputValue, "ether").toString())],
+                      });
+                    } catch (e) {
+                      console.error("Error setting greeting:", e);
+                    }
+                  }}
+                >
+                  deposit Double
+                </button>
+              </div>
+
+              <div>
+                <button
+                  className="btn btn-primary"
+                  onClick={async () => {
+                    try {
+                      await writeYourContractAsync({
+                        functionName: "startRound",
+                        args: [tradeId],
+                        value: BigInt(ethers.utils.parseUnits((2 * Number(inputValue)).toString(), "ether").toString()),
+                      });
+                    } catch (e) {
+                      console.error("Error setting greeting:", e);
+                    }
+                  }}
+                >
+                  start trade
+                </button>
+              </div>
+              <div>
+                <input
+                  type="text"
+                  className="text-center"
+                  placeholder="Enter private TnxId"
+                  value={inputValue3}
+                  onChange={handleInputChange3}
+                />
+                <button
+                  className="btn btn-primary"
+                  onClick={async () => {
+                    try {
+                      await writeYourContractAsync({
+                        functionName: "confirmBySeller",
+                        args: [tradeId, inputValue3 as `0x${string}`],
+                      });
+                    } catch (e) {
+                      console.error("Error setting greeting:", e);
+                    }
+                  }}
+                >
+                  confirm-by-seller
+                </button>
+              </div>
             </>
           )}
 
-          {userRole === false && <>false role beta</>}
+          {userRole === false && (
+            <>
+              <div>
+                <input
+                  type="text"
+                  className="enter your oppo address"
+                  placeholder="Enter address to send"
+                  value={inputValue2}
+                  onChange={handleInputChange2}
+                />
+                <button
+                  className="btn btn-primary"
+                  onClick={async () => {
+                    try {
+                      await writeYourContractAsync({
+                        functionName: "confirmOffRamp",
+                        args: [inputValue2 as AddressType, tradeId, "0x77"],
+                      });
+                    } catch (e) {
+                      console.error("Error setting greeting:", e);
+                    }
+                  }}
+                >
+                  Confirm-Ramp(enter address-sellers)
+                </button>
+              </div>
+
+              <div>
+                <input
+                  type="number"
+                  className="text-center"
+                  placeholder="verify payment by buyer through zkemail"
+                  value={inputValue4}
+                  onChange={handleInputChange4}
+                />
+                <button
+                  className="btn btn-primary"
+                  onClick={async () => {
+                    try {
+                      await writeYourContractAsync({
+                        functionName: "sendVerifyByBuyer",
+                        args: [tradeId, BigInt(inputValue4)],
+                      });
+                    } catch (e) {
+                      console.error("Error setting greeting:", e);
+                    }
+                  }}
+                >
+                  Send Verify
+                </button>
+              </div>
+
+              <div>
+                <button
+                  className="btn btn-primary"
+                  onClick={async () => {
+                    try {
+                      await writeYourContractAsync({
+                        functionName: "ClaimByBuyer",
+                        args: [tradeId],
+                      });
+                    } catch (e) {
+                      console.error("Error setting greeting:", e);
+                    }
+                  }}
+                >
+                  Claim Crypto
+                </button>
+              </div>
+            </>
+          )}
         </div>
       )}
       <div
