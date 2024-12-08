@@ -14,7 +14,7 @@ interface PageParams {
 }
 
 export default function page({ params }: PageParams) {
-  const { room } = params;
+  const { room, counter } = params;
   console.log("roomid ", room);
   const { address: connectedAddress } = useAccount();
   const [newMessage, setNewMessage] = useState<string>("");
@@ -55,6 +55,7 @@ export default function page({ params }: PageParams) {
 
   return (
     <SellRoomChat
+      tradeId={counter}
       setNewMessage={setNewMessage}
       connectedAddress={connectedAddress}
       newMessage={newMessage}

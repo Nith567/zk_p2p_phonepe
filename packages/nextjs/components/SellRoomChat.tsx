@@ -4,25 +4,26 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import { ethers } from "ethers";
-import { Address as AddressType, type Hex, formatEther, parseAbi, parseEther } from "viem";
+import { Address as AddressType, type Hex, formatEther, maxInt216, parseAbi, parseEther } from "viem";
 import { type BaseError, useAccount, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
 import { DocumentDuplicateIcon } from "@heroicons/react/24/outline";
+import { abi2 } from "~~/contracts/abi";
 import { useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
 import { useTransactor } from "~~/hooks/scaffold-eth";
 
 const SellRoomChat = ({ roomId, connectedAddress, messages, tradeId, pushMessage, newMessage, setNewMessage }: any) => {
   const [userRole, setUserRole] = useState<boolean | null>(null); // true = seller, false = buyer
-  const [inputValue, setInputValue] = useState();
+  const [inputValue, setInputValue] = useState<string>(""); //for eth
   const handleInputChange = (e: any) => setInputValue(e.target.value);
 
-  const [inputValue2, setInputValue2] = useState(); //for addresss
+  const [inputValue2, setInputValue2] = useState<string>(""); //for addresss
   const handleInputChange2 = (e: any) => setInputValue2(e.target.value);
 
   //used for tnxid
-  const [inputValue3, setInputValue3] = useState(); //for addresss
+  const [inputValue3, setInputValue3] = useState<string>("");
   const handleInputChange3 = (e: any) => setInputValue3(e.target.value);
 
-  const [inputValue4, setInputValue4] = useState(); //for addresss
+  const [inputValue4, setInputValue4] = useState<string>("");
   const handleInputChange4 = (e: any) => setInputValue4(e.target.value);
   const router = useRouter();
 
@@ -77,19 +78,26 @@ const SellRoomChat = ({ roomId, connectedAddress, messages, tradeId, pushMessage
     pushMessage(newMessage);
     setNewMessage("");
   }
-
+  const submit = () => {
+    writeContract({
+      address: "0x3662f3a98ee939673b04df3d9ac44859faf7f80b",
+      abi: abi2,
+      functionName: "doubleDeposit",
+      args: [34, 3900000000000n],
+    });
+  };
   return (
     <main className="min-h-screen pt-[10vh] custom-bg bg-sky-300 min-w-screen flex flex-col lg:flex-row items-start">
       {isConnected && (
         <div
           className={`flex-1 rounded-3xl mx-auto lg:ml-[2vw] lg:mr-[1vw] lg:my-[5vh] bg-blue-300 p-6 h-[80vh] flex flex-col gap-6`}
         >
-          {/* {userRole === true && (
+          {userRole === true && (
             <>
               <div className="flex flex-col gap-4">
                 <div>
                   <input
-                    type="text"
+                    type="string"
                     className="w-full text-center p-2 rounded-md border border-gray-300"
                     placeholder="Enter ETH to exchange"
                     value={inputValue}
@@ -97,6 +105,7 @@ const SellRoomChat = ({ roomId, connectedAddress, messages, tradeId, pushMessage
                   />
                 </div>
                 <div className="flex justify-between gap-4">
+                  {" "}
                   <button
                     className="btn btn-primary w-full"
                     onClick={async () => {
@@ -104,13 +113,12 @@ const SellRoomChat = ({ roomId, connectedAddress, messages, tradeId, pushMessage
                         await writeYourContractAsync(
                           {
                             functionName: "doubleDeposit",
-                            //@ts-ignore
-                            args: [tradeId, BigInt(ethers.utils.parseEther(inputValue))],
+                            args: [BigInt(parseInt(tradeId)), BigInt(parseEther(inputValue).toString())],
                           },
                           {
                             onBlockConfirmation: txnReceipt => {
                               console.log("📦 Transaction blockHash", txnReceipt.blockHash);
-                              pushMessage(newMessage);
+                              pushMessage(txnReceipt.blockHash);
                               setNewMessage("");
                             },
                           },
@@ -129,13 +137,20 @@ const SellRoomChat = ({ roomId, connectedAddress, messages, tradeId, pushMessage
                     className="btn btn-primary w-full"
                     onClick={async () => {
                       try {
-                        await writeYourContractAsync({
-                          functionName: "startRound",
-                          args: [tradeId],
-                          value: BigInt(
-                            ethers.utils.parseUnits((2 * Number(inputValue)).toString(), "ether").toString(),
-                          ),
-                        });
+                        await writeYourContractAsync(
+                          {
+                            functionName: "startRound",
+                            args: [BigInt(parseInt(tradeId))],
+                            value: parseEther(inputValue),
+                          },
+                          {
+                            onBlockConfirmation: txnReceipt => {
+                              console.log("📦 Transaction blockHash", txnReceipt.blockHash);
+                              pushMessage(txnReceipt.blockHash + "-startRound");
+                              setNewMessage("");
+                            },
+                          },
+                        );
                       } catch (e) {
                         console.error("Error setting greeting:", e);
                       }
@@ -157,10 +172,20 @@ const SellRoomChat = ({ roomId, connectedAddress, messages, tradeId, pushMessage
                     className="btn btn-primary w-full mt-4"
                     onClick={async () => {
                       try {
-                        await writeYourContractAsync({
-                          functionName: "confirmBySeller",
-                          args: [tradeId, inputValue3],
-                        });
+                        await writeYourContractAsync(
+                          {
+                            functionName: "confirmBySeller",
+                            //@ts-ignore
+                            args: [tradeId, inputValue3],
+                          },
+                          {
+                            onBlockConfirmation: txnReceipt => {
+                              console.log("📦 Transaction blockHash", txnReceipt.blockHash);
+                              pushMessage(txnReceipt.blockHash + "-confirmbyseller");
+                              setNewMessage("");
+                            },
+                          },
+                        );
                       } catch (e) {
                         console.error("Error setting greeting:", e);
                       }
@@ -188,10 +213,19 @@ const SellRoomChat = ({ roomId, connectedAddress, messages, tradeId, pushMessage
                     className="btn btn-primary w-full mt-4"
                     onClick={async () => {
                       try {
-                        await writeYourContractAsync({
-                          functionName: "confirmOffRamp",
-                          args: [inputValue2, tradeId, "0x77"],
-                        });
+                        await writeYourContractAsync(
+                          {
+                            functionName: "confirmOffRamp",
+                            args: [inputValue2, BigInt(tradeId), "0x77"],
+                          },
+                          {
+                            onBlockConfirmation: txnReceipt => {
+                              console.log("📦 Transaction blockHash", txnReceipt.blockHash);
+                              pushMessage(txnReceipt.blockHash + "-confirmofframp attestaion");
+                              setNewMessage("");
+                            },
+                          },
+                        );
                       } catch (e) {
                         console.error("Error setting greeting:", e);
                       }
@@ -213,10 +247,19 @@ const SellRoomChat = ({ roomId, connectedAddress, messages, tradeId, pushMessage
                     className="btn btn-primary w-full mt-4"
                     onClick={async () => {
                       try {
-                        await writeYourContractAsync({
-                          functionName: "sendVerifyByBuyer",
-                          args: [tradeId, BigInt(inputValue4 || "0")],
-                        });
+                        await writeYourContractAsync(
+                          {
+                            functionName: "sendVerifyByBuyer",
+                            args: [BigInt(tradeId), BigInt(inputValue4 || "0")],
+                          },
+                          {
+                            onBlockConfirmation: txnReceipt => {
+                              console.log("📦 Transaction blockHash", txnReceipt.blockHash);
+                              pushMessage(txnReceipt.blockHash + "-sendverifybybuyer");
+                              setNewMessage("");
+                            },
+                          },
+                        );
                       } catch (e) {
                         console.error("Error setting greeting:", e);
                       }
@@ -231,10 +274,19 @@ const SellRoomChat = ({ roomId, connectedAddress, messages, tradeId, pushMessage
                     className="btn btn-primary w-full mt-4"
                     onClick={async () => {
                       try {
-                        await writeYourContractAsync({
-                          functionName: "ClaimByBuyer",
-                          args: [tradeId],
-                        });
+                        await writeYourContractAsync(
+                          {
+                            functionName: "ClaimByBuyer",
+                            args: [BigInt(tradeId)],
+                          },
+                          {
+                            onBlockConfirmation: txnReceipt => {
+                              console.log("📦 Transaction blockHash", txnReceipt.blockHash);
+                              pushMessage(txnReceipt.blockHash + "-claimbybuyer");
+                              setNewMessage("");
+                            },
+                          },
+                        );
                       } catch (e) {
                         console.error("Error setting greeting:", e);
                       }
@@ -245,7 +297,7 @@ const SellRoomChat = ({ roomId, connectedAddress, messages, tradeId, pushMessage
                 </div>
               </div>
             </>
-          )} */}
+          )}
         </div>
       )}
       <div
@@ -278,13 +330,12 @@ const SellRoomChat = ({ roomId, connectedAddress, messages, tradeId, pushMessage
             );
           })}
         </div>
-        <button onClick={() => console.log(connectedAddress)}>helloworld</button>
         <form onSubmit={handleSubmit} className="flex flex-row items-center gap-3 py-5 px-5">
           <input
             type="text"
             value={newMessage}
             onChange={event => setNewMessage(event.target.value)}
-            className="w-full rounded-full p-3 px-5 outline-none focus:outline-none fo ring-2 focus:ring-neutral-400 ring-neutral-300"
+            className="w-fit rounded-full p-3 px-5 outline-none focus:outline-none fo ring-2 focus:ring-neutral-400 ring-neutral-300"
             placeholder="Type your message here..."
           />
           <button

@@ -35,7 +35,7 @@ contract offRampBased {
 		bool dealDone;
 	}
 	ISP public spInstance = ISP(0x4e4af2a21ebf62850fD99Eb6253E1eFBb56098cD);
-	uint64 public schemaId = 244;
+	uint64 public schemaId = 777;
 	mapping(uint256 => Trade) public trades;
 	mapping(address => bool) public isMerchant;
 	mapping(address => bool) public isSeller;
@@ -118,7 +118,6 @@ contract offRampBased {
 		);
 		payable(msg.sender).transfer(trades[tradeId].remaningEth);
 	}
-
 	modifier OnlySeller(uint256 tradeId) {
 		require(
 			trades[tradeId].seller.addr == msg.sender,
